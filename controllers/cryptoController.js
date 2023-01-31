@@ -79,12 +79,23 @@ exports.getAccount = async(req, res, next) => {
 }
 
 exports.getWallet = async(req, res, next) => {
-		let wallet = await Wallet.findOne({publicKey: req.publicKey}).limit(1);
+		let publicKey = req.query.publicKey;
+		if (!publicKey) {
+				return res.status(200).json({
+						status: 'failure',
+						data: {
+								message: "Param publicKey missing"
+						}
+				})
+		}
+
+		let wallet = await Wallet.findOne({publicKey}).limit(1);
 
 		if (!wallet) {
 				return res.status(404).json({
-						status: 'failure', data: {
-								message: "No wallets in DB. Please generate one using /api/generate-wallet"
+						status: 'failure',
+						data: {
+								message: "No wallet in DB for that publicKey. Please generate one using /api/generate-wallet"
 						}
 				});
 		}
