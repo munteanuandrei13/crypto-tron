@@ -12,10 +12,10 @@ exports.getContract = async(req, res, next) => {
 		let abi = [{"entrys":[{"name":"incrementCount","stateMutability":"nonpayable","type":"function"},{"outputs":[{"type":"uint256"}],"name":"count","stateMutability":"view","type":"function"}]}]
 
 		let response = await tronWeb.contract(abi, "TVEZvm3LhximKrqyTKFPsSGt1pChXxCQSs");
-		console.log(response);
 
 		res.status(200).json({
-				status: 'success'
+				status: 'success',
+				data: response
 		});
 }
 
@@ -25,17 +25,17 @@ exports.getCount = async(req, res, next) => {
 		let contract = await tronWeb.contract().at('TVEZvm3LhximKrqyTKFPsSGt1pChXxCQSs');
 
 		contract["count"]().call().then(response => {
-				console.log(response)
-				console.log(tronWeb.toDecimal(response._hex));
-
+				res.status(200).json({
+						status: 'success',
+						data: {response, countToDecimal: tronWeb.toDecimal(response._hex)}
+				});
 		}).catch(err => {
 				console.log(err)
-
+				res.status(200).json({
+						status: 'failure',
+						data: err
+				});
 		})
-
-		res.status(200).json({
-				status: 'success'
-		});
 }
 
 exports.incrementCount = async(req, res, next) => {
@@ -46,31 +46,40 @@ exports.incrementCount = async(req, res, next) => {
 				feeLimit: 100_000_000,
 				callValue: 0,
 		}).then(response => {
-				console.log(response);
+				res.status(200).json({
+						status: 'success',
+						data: response
+				});
 		}).catch(err => {
-				console.log(err);
+				res.status(200).json({
+						status: 'failure',
+						data: err
+				});
 		})
-
-		res.status(200).json({
-				status: 'success'
-		});}
+}
 
 exports.getAccount = async(req, res, next) => {
 		let wallet = await Wallet.findOne({});
 
 		const tronWeb = new TronWeb(fullNode,solidityNode,eventServer);
 
-		tronWeb.trx.getAccount(wallet.addressBase58).then(result => {
-				console.log(result);
+		tronWeb.trx.getAccount(wallet.addressBase58).then(response => {
+				res.status(200).json({
+						status: 'success',
+						data: response
+				});
 		}).catch(err => {
-				console.log(err)
+				res.status(200).json({
+						status: 'failure',
+						data: err
+				});
 		})
 
 		return;
 }
 
 exports.getWallet = async(req, res, next) => {
-		let wallet = await Wallet.findOne({});
+		let wallet = await Wallet.findOne({publicKey: req.publicKey}).limit(1);
 
 		if (!wallet) {
 				return res.status(404).json({
@@ -88,16 +97,6 @@ exports.getWallet = async(req, res, next) => {
 }
 
 exports.generateWallet = async(req, res, next) => {
-		let wallet = await Wallet.findOne({}).sort({_id: -1}).limit(1);
-
-		if (wallet) {
-				return res.status(200).json({
-						status: 'success', data: {
-								wallet
-						}
-				});
-		}
-
 		let generatedWallet = TronWeb.utils.accounts.generateAccount();
 
 		const newWallet = await Wallet.create({
